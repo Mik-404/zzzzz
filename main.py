@@ -1,3 +1,22 @@
+import kivy
+from kivy.app import App
+from kivy.uix.widget import Widget
+from kivy.uix.label import Label
+from kivy.uix.button import Button
+from kivy.uix.textinput import TextInput
+from kivy.uix.gridlayout import GridLayout
+from kivy.properties import StringProperty
+from kivy.uix.floatlayout import FloatLayout
+from kivy.clock import Clock
+from kivy.uix.popup import Popup
+from kivy.lang import Builder
+from kivy.core.text import LabelBase
+from kivy.uix.screenmanager import ScreenManager, Screen
+from kivy.core.clipboard import Clipboard
+
+LabelBase.register(name='Jost', fn_regular='Jost-Light.ttf')
+LabelBase.register(name='Oxygen', fn_regular='Oxygen-Bold.ttf')
+
 import collections
 import collections.abc
 import functools
@@ -6,6 +25,7 @@ import math
 import operator
 import types as _types
 import inspect
+import os
 import re
 import struct
 import sys
@@ -25,6 +45,14 @@ import types as _types
 import numpy as np
 import cv2 as cv
 from pyzbar import pyzbar
+from kivy.logger import Logger
+from kivy.clock import Clock
+
+from tkinter.filedialog import askopenfilename
+from tkinter import Tk
+import tkinter.filedialog as fd
+
+
 if 1:
     Literal = typing.Literal
 
@@ -2307,14 +2335,87 @@ def make(data=None, **kwargs):
     qr.add_data(data)
     return qr.make_image()
 
-data = "goigagoidagoida"
-# имя конечного файла
-filename = "site.png"
-# генерируем qr-код
-img = make(data)
-# сохраняем img в файл
-img.save(filename)
 
-img = cv.imread('fff.jpg', cv.IMREAD_COLOR)
-barcodes = pyzbar.decode(img)
-print (barcodes[0].data.decode("utf-8"))
+class WindowManager (ScreenManager):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+class MainWindow (Screen):
+    text = StringProperty()
+    vdtext = StringProperty()
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def on_click2 (self):
+        self.manager.current = 'login'
+
+    def show_load(self):
+        Tk().withdraw() # avoids window accompanying tkinter FileChooser
+        img = askopenfilename(initialdir = "/",title = "Select file",filetypes = (("jpeg files","*.jpg"),("png files","*.png"),("all files","*.*")))
+        img = cv.imread(img, cv.IMREAD_COLOR)
+        barcodes = pyzbar.decode(img)
+        txt = barcodes[0].data.decode("utf-8")
+        if os.path.exists(txt + '.txt'):
+            with open(txt + '.txt', encoding='utf-8') as f:
+                self.vdtext = f.readline()
+                self.text = f.read()
+                self.manager.current = 'mat'
+
+class LogInAdmin (Screen):
+    def clc(self):
+        print (self.ids)
+        password = self.ids['pass'].text
+        login = self.ids['log'].text
+        print(password, login)
+        self.ids['pass'].text = ''
+        self.ids['log'].text= ''
+        if login == '111' and password == '1111':
+            self.manager.current = 'zaeb'
+
+
+class Zaewindow (Screen):
+    def clc(self, **kwargs):
+        url = self.ids['url'].text
+        hint = self.ids['hint'].text
+        print(url, hint)
+        self.ids['url'].text = ''
+        self.ids['hint'].text= ''
+        with open (url[32:38] + '.txt', 'w+') as f:
+            f.write(url+'\n'+hint)
+        filename = "site.png"
+        img = make(url[32:38])
+        
+        new_file = fd.asksaveasfile(title="Сохранить файл", defaultextension=".png",
+                                    filetypes=(("Рисунок", "*.png"),))
+        if new_file:
+            img.save(new_file.name)
+            new_file.close()
+        self.manager.current = 'main'
+        
+
+class NewMat (Screen):
+    label_text = StringProperty()
+    vid_url = StringProperty()
+    def back (self):
+        self.manager.current = 'main'
+    def back2 (self):
+        Clipboard.copy(self.vid_url)
+
+kv = Builder.load_file('my.kv')
+
+class MyApp(App):
+    def build (self):
+        return kv
+
+
+if __name__ == '__main__':
+    # data = "goigagoidagoida"
+    # # имя конечного файла
+    # filename = "site.png"
+    # # генерируем qr-код
+    # img = make(data)
+    # # сохраняем img в файл
+    # img.save(filename)
+    # print(12)
+
+    MyApp().run()
